@@ -1,8 +1,12 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Z3.Context (
-    Z3Sort(..),
     Z3Encoded,
     Z3Sorted,
+    Z3Sort(..),
     Z3Reserved,
+    Z3Sort,
+    sortPhantom,
     encode,
     sort,
     def,
@@ -20,21 +24,19 @@ import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
 
--- data Decls = Decls {
-    -- _valBindings  :: M.Map String Value --,
-    -- _datatypes :: [(String, [(String, [(String, Type)])])]
--- } deriving (Show, Eq)
-
-
-data Z3Sort t = Z3Sort
+data Z3Sort a = Z3Sort
 
 class Z3Encoded a where
     encode :: a -> SMT AST
 
-class Z3Encoded a => Z3Sorted a where
-    sort :: Z3Sort a -> SMT Sort
+class Z3Sorted a where
+    sort :: a -> SMT Sort
+    sort _ = sortPhantom (Z3Sort :: Z3Sort a)
 
-class Z3Sorted a => Z3Reserved a where
+    sortPhantom :: Z3Sort a -> SMT Sort
+    sortPhantom _ = smtError "sort error"
+
+class Z3Encoded a => Z3Reserved a where
     def :: a
 
 data SMTContext = SMTContext {
@@ -43,7 +45,7 @@ data SMTContext = SMTContext {
     -- Functions
     -- _funcContext :: M.Map String Type,
     -- Bind local variables introduced by qualifiers to de brujin index in Z3
-    _qualifierContext :: M.Map String AST,
+    _qualifierContext :: M.Map String (AST, Sort),
     -- From name to Z3 sort
     -- _datatypeCtx :: M.Map String Sort,
     -- Counter used to generate globally unique ID
@@ -62,52 +64,19 @@ genFreshId = do
     modify (\ctx -> ctx { _counter = i + 1 })
     return i
 
-runSMT :: {- Decls -> -} SMT a -> IO (Either String a)
-runSMT {- decls -} smt = evalZ3With Nothing opts m
+runSMT :: SMT a -> IO (Either String a)
+runSMT smt = evalZ3With Nothing opts m
     where
         opts = opt "MODEL" True
-        -- funcs = constructFuncs (_datatypes decls)
-        -- smt' = do
-            -- sorts <- mapM initDataType (_datatypes decls)
-            -- let datatypeCtx = M.fromList (zip (map fst (_datatypes decls)) sorts)
-            -- modify $ \ctx -> ctx { _funcContext = funcs,
-            --                        _datatypeCtx = datatypeCtx }
-            -- smt
         m = evalStateT (runExceptT smt)
-                       (SMTContext M.empty 0) --(_valBindings decls) M.empty M.empty M.empty 0)
+                       (SMTContext M.empty 0)
 
--- initDataType :: (String, [(String, [(String, Type)])]) -> SMT Sort
--- initDataType (tyName, alts) = do
---     constrs <- mapM (\(consName, fields) -> do
---                         consSym <- mkStringSymbol consName
---                         recogSym <- mkStringSymbol ("is_" ++ consName)
---                         flds <- flip mapM fields $ \(fldName, fldTy) -> do
---                             symFld <- mkStringSymbol fldName
---                             sort <- tyToSort fldTy
---                             return (symFld, Just sort, -1) -- XXX: non-rec
---                         mkConstructor consSym recogSym flds
---                     ) alts
---     sym <- mkStringSymbol tyName
---     sort <- mkDatatype sym constrs
---     return sort
-
--- constructFuncs :: [(String, [(String, [(String, Type)])])] -> M.Map String Type
--- constructFuncs = M.fromList . concat . concatMap f
---     where
---         f (tyName, alts) =
---             flip map alts $ \(consName, fields) ->
---                 let ftys = map snd fields
---                     ty   = TyADT tyName
---                     cons = (consName, consApp ftys ty)
---                     dess = map (\(desName, fty) -> (desName, TyApp ty fty)) fields
---                 in cons : dess
-
-bindQualified :: String -> AST -> SMT ()
-bindQualified x idx = modify $ \ctx ->
-        ctx { _qualifierContext = M.insert x idx (_qualifierContext ctx) }
+bindQualified :: String -> AST -> Sort -> SMT ()
+bindQualified x idx s = modify $ \ctx ->
+        ctx { _qualifierContext = M.insert x (idx, s) (_qualifierContext ctx) }
 
 
-getQualifierCtx :: SMT (M.Map String AST)
+getQualifierCtx :: SMT (M.Map String (AST, Sort))
 getQualifierCtx = _qualifierContext <$> get
 
 smtError :: String -> SMT a

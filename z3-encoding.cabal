@@ -19,7 +19,8 @@ library
                        Z3.Encoding
                        -- Z3.Infer
                        Z3.Logic
-                       -- Z3.Assertion
+                       Z3.Demo
+                       Z3.Assertion
                        -- Z3.Type
   -- other-modules:       
   other-extensions:    LambdaCase, UndecidableInstances
