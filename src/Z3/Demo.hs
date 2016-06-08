@@ -2,8 +2,8 @@
 
 module Z3.Demo where
 
-import Z3.Logic
-import Z3.Context
+import Z3.Core.Logic
+import Z3.Core.Context
 import Z3.Assertion
 import Z3.Monad
 
@@ -16,6 +16,8 @@ data Type = TyBool
           | TyDouble
           | TyMap Type Type
           | TySet Type
+          -- | TyApp Type Type
+          -- | TyADT String
 
 type Z3Pred = Pred Term Type Assertion
 

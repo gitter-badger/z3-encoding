@@ -15,10 +15,11 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Z3.Context
-                       Z3.Encoding
+  exposed-modules:     Z3.Core.Context
+                       Z3.Core.Encoding
                        -- Z3.Infer
-                       Z3.Logic
+                       Z3.Core.Logic
+                       Z3.Container
                        Z3.Demo
                        Z3.Assertion
                        -- Z3.Type

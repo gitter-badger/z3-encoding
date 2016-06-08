@@ -2,8 +2,9 @@
 
 module Z3.Assertion where
 
-import Z3.Context
-import Z3.Encoding()
+import Z3.Core.Context
+import Z3.Container()
+import Z3.Core.Encoding()
 import Z3.Monad
 
 import qualified Data.Map as M
@@ -14,13 +15,6 @@ data Assertion where
     InSet :: forall v. (Z3Encoded v, Z3Sorted v) => v -> S.Set v -> Assertion
     Equal :: forall v1 v2. (Z3Encoded v1, Z3Encoded v2) => v1 -> v2 -> Assertion
     Less  :: forall v1 v2. (Z3Encoded v1, Z3Encoded v2) => v1 -> v2 -> Assertion
-
--- instance Show Assertion where
---     show = \case
---         InMap k v m -> "in_map(" ++ show k ++ ", " ++ show v ++ ", " ++ show m ++ ")"
---         InSet v s   -> "in_set(" ++ show v ++ ", " ++ show s ++ ")"
---         Equal v1 v2 -> show v1 ++ " = " ++ show v2
---         Less v1 v2  -> show v1 ++ " <= " ++ show v2
 
 instance Z3Encoded Assertion where
     encode (InMap k v m) = do
