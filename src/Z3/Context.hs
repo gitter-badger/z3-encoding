@@ -1,4 +1,18 @@
-module Z3.Context where
+module Z3.Context (
+    Z3Sort(..),
+    Z3Encoded,
+    Z3Sorted,
+    Z3Reserved,
+    encode,
+    sort,
+    def,
+    SMT,
+    runSMT,
+    smtError,
+    genFreshId,
+    getQualifierCtx,
+    bindQualified
+) where
 
 import Z3.Monad
 
@@ -10,6 +24,18 @@ import qualified Data.Map as M
     -- _valBindings  :: M.Map String Value --,
     -- _datatypes :: [(String, [(String, [(String, Type)])])]
 -- } deriving (Show, Eq)
+
+
+data Z3Sort t = Z3Sort
+
+class Z3Encoded a where
+    encode :: a -> SMT AST
+
+class Z3Encoded a => Z3Sorted a where
+    sort :: Z3Sort a -> SMT Sort
+
+class Z3Sorted a => Z3Reserved a where
+    def :: a
 
 data SMTContext = SMTContext {
     -- Globally free bindings
@@ -79,3 +105,10 @@ runSMT {- decls -} smt = evalZ3With Nothing opts m
 bindQualified :: String -> AST -> SMT ()
 bindQualified x idx = modify $ \ctx ->
         ctx { _qualifierContext = M.insert x idx (_qualifierContext ctx) }
+
+
+getQualifierCtx :: SMT (M.Map String AST)
+getQualifierCtx = _qualifierContext <$> get
+
+smtError :: String -> SMT a
+smtError = throwError

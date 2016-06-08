@@ -9,17 +9,6 @@ import Z3.Monad hiding (mkMap)
 import qualified Data.Map as M
 import qualified Data.Set as S
 
-data Z3Sort t = Z3Sort
-
-class Z3Encoded a where
-    encode :: a -> SMT AST
-
-class Z3Encoded a => Z3Sorted a where
-    sort :: Z3Sort a -> SMT Sort
-
-class Z3Sorted a => Z3Reserved a where
-    def :: a
-
 instance (Z3Sorted t, Z3Encoded a) => Z3Encoded (Pred t a) where
     encode PTrue = mkTrue
     encode PFalse = mkFalse
@@ -34,7 +23,7 @@ instance (Z3Sorted t, Z3Encoded a) => Z3Encoded (Pred t a) where
         mkOr [a1, a2]
     encode (PNeg p) = encode p >>= mkNot
 
-    encode (PForAll x p) = do
+    encode (PForAll (Binder x) p) = do
         sym <- mkStringSymbol x
         xsort <- sort (Z3Sort :: Z3Sort t)
         idx <- mkBound 0 xsort
@@ -43,7 +32,7 @@ instance (Z3Sorted t, Z3Encoded a) => Z3Encoded (Pred t a) where
             a <- encode p
             mkForall [] [sym] [xsort] a
 
-    encode (PExists x p) = do
+    encode (PExists (Binder x) p) = do
         sym <- mkStringSymbol x
         xsort <- sort (Z3Sort :: Z3Sort t)
         idx <- mkBound 0 xsort
